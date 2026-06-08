@@ -22,6 +22,8 @@ router = APIRouter()
 
 CACHE_TTL = 300  # 5 minutes
 
+def _cache_key(user_id: uuid.UUID, page: int, size: int) -> str:
+    return f"todos:list:{user_id}:{page}:{size}"
 
 @router.get("", response_model=TodoListResponse)
 async def list_todos(
@@ -34,7 +36,10 @@ async def list_todos(
     """Get paginated list of todos."""
     skip = (page - 1) * size
 
-    cache_key = "todos:list"
+    # Cache key cố định là "todos:list" -> rò rỉ dữ liệu
+    # Người dùng A gọi endpoint trước, dữ liệu của A được cache. Người dùng B gọi sau, nhận về đúng dữ liệu của A từ cache
+    cache_key = _cache_key(current_user.id, page, size)
+    # fix: gắn thêm các trường id, page, pageSize vào cacche_key
 
     # Try to get from cache
     cached = await redis.get(cache_key)
