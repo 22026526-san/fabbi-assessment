@@ -34,7 +34,9 @@ interface UpdateTodoRequest {
 
 export function useTodos(page: number = 1, size: number = 10000) {
   return useQuery({
-    queryKey: ["todos"],
+    // queryKey: ["todos"],
+    // thêm page, size để khi page hoặc size thay đổi tránh TH React Query không refetch vì key giống nhau
+    queryKey: ["todos",page, size],
     queryFn: async (): Promise<TodoListResponse> => {
       const response = await api.get("/todos", {
         params: { page, size },
@@ -92,7 +94,11 @@ export function useUpdateTodo() {
 
       return { previousTodos };
     },
-    onError: () => {
+    onError: (_err, _vars, context) => {
+      // xử lý Rollback data khi xảy ra lỗi trong quá trình update todo
+      if (context?.previousTodos) {
+        queryClient.setQueryData(["todos"], context.previousTodos);
+      }
       toast.error("Failed to update todo");
     },
     onSettled: () => {
