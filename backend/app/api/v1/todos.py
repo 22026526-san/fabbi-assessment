@@ -103,6 +103,15 @@ async def get_todo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Todo not found",
         )
+    
+    # nếu chỉ kiểm tra xem todo có tồn tại hay không thì Bất kỳ người dùng nào đã đăng nhập 
+    # cũng có thể truyền vào một todo_id bất kỳ và xem được dữ liệu todo của người dùng khác
+    if todo.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this todo",
+        )
+    # fix: kiểm tra bản ghi todo có phải của người dùng đang đăng nhập hay không
 
     return todo
 
@@ -122,6 +131,15 @@ async def update_existing_todo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Todo not found",
         )
+    
+    # nếu chỉ kiểm tra xem todo có tồn tại hay không thì Bất kỳ người dùng nào đã đăng nhập 
+    # cũng có thể truyền vào một todo_id bất kỳ và xem được dữ liệu todo của người dùng khác
+    if todo.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this todo",
+        )
+    # fix: kiểm tra bản ghi todo có phải của người dùng đang đăng nhập hay không
 
     update_data = todo_data.model_dump()
 
@@ -153,6 +171,15 @@ async def delete_existing_todo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Todo not found",
         )
+    
+    # nếu chỉ kiểm tra xem todo có tồn tại hay không thì Bất kỳ người dùng nào đã đăng nhập 
+    # cũng có thể truyền vào một todo_id bất kỳ và xem được dữ liệu todo của người dùng khác
+    if todo.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this todo",
+        )
+    # fix: kiểm tra bản ghi todo có phải của người dùng đang đăng nhập hay không
 
     await delete_todo(db, todo)
 
