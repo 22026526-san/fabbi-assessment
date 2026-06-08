@@ -95,6 +95,24 @@ async def refresh_token(
         )
 
     user_id = payload.get("sub")
+    # Kiểm tra xem userd có tồn tại hay không trước khi tạo mới tokens
+    import uuid
+    from app.services.auth_service import get_user_by_id
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+
+    user = await get_user_by_id(db, user_uuid)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    
     access_token = create_access_token(data={"sub": user_id})
     refresh_token = create_refresh_token(data={"sub": user_id})
 
