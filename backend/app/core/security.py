@@ -45,7 +45,7 @@ def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> 
     )
     return encoded_jwt
 
-
+# options={"verify_exp": False} được truyền vào jwt.decode(), điều này khiến cho một token đã hết hạn vẫn sẽ được chấp nhận
 def verify_token(token: str) -> dict[str, Any] | None:
     """Verify and decode a JWT token."""
     try:
@@ -53,7 +53,8 @@ def verify_token(token: str) -> dict[str, Any] | None:
             token,
             settings.JWT_SECRET,
             algorithms=[settings.JWT_ALGORITHM],
-            options={"verify_exp": False},
+            # options={"verify_exp": False},
+            # fix: không truyền options
         )
         return payload
     except JWTError:

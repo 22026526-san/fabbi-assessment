@@ -22,6 +22,8 @@ router = APIRouter()
 
 CACHE_TTL = 300  # 5 minutes
 
+def _cache_key(user_id: uuid.UUID, page: int, size: int) -> str:
+    return f"todos:list:{user_id}:{page}:{size}"
 
 @router.get("", response_model=TodoListResponse)
 async def list_todos(
@@ -34,7 +36,10 @@ async def list_todos(
     """Get paginated list of todos."""
     skip = (page - 1) * size
 
-    cache_key = "todos:list"
+    # Cache key cố định là "todos:list" -> rò rỉ dữ liệu
+    # Người dùng A gọi endpoint trước, dữ liệu của A được cache. Người dùng B gọi sau, nhận về đúng dữ liệu của A từ cache
+    cache_key = _cache_key(current_user.id, page, size)
+    # fix: gắn thêm các trường id, page, pageSize vào cacche_key
 
     # Try to get from cache
     cached = await redis.get(cache_key)
@@ -98,6 +103,15 @@ async def get_todo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Todo not found",
         )
+    
+    # nếu chỉ kiểm tra xem todo có tồn tại hay không thì Bất kỳ người dùng nào đã đăng nhập 
+    # cũng có thể truyền vào một todo_id bất kỳ và xem được dữ liệu todo của người dùng khác
+    if todo.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this todo",
+        )
+    # fix: kiểm tra bản ghi todo có phải của người dùng đang đăng nhập hay không
 
     return todo
 
@@ -117,11 +131,23 @@ async def update_existing_todo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Todo not found",
         )
+    
+    # nếu chỉ kiểm tra xem todo có tồn tại hay không thì Bất kỳ người dùng nào đã đăng nhập 
+    # cũng có thể truyền vào một todo_id bất kỳ và xem được dữ liệu todo của người dùng khác
+    if todo.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this todo",
+        )
+    # fix: kiểm tra bản ghi todo có phải của người dùng đang đăng nhập hay không
 
-    update_data = todo_data.model_dump()
 
-    if todo_data.completed:
-        todo.completed = todo_data.completed
+    # Hiện tại chỉ đang xử lý TH True, không xử lý False
+    update_data = todo_data.model_dump(exclude_unset=True)
+
+    # if todo_data.completed:
+    #     todo.completed = todo_data.completed
+    # Fix: truyền exclude_unset=True vào model_dump()
 
     # Apply other updates
     if update_data.get("title") is not None:
@@ -129,7 +155,9 @@ async def update_existing_todo(
     if "description" in update_data:
         todo.description = update_data["description"]
 
-    updated_todo = await update_todo(db, todo, {})
+    # Hàm update truyền mảng rỗng -> thay đổi không được cập nhật
+    updated_todo = await update_todo(db, todo, update_data)
+    # Fix: truyền update_data
 
     return updated_todo
 
@@ -148,6 +176,15 @@ async def delete_existing_todo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Todo not found",
         )
+    
+    # nếu chỉ kiểm tra xem todo có tồn tại hay không thì Bất kỳ người dùng nào đã đăng nhập 
+    # cũng có thể truyền vào một todo_id bất kỳ và xem được dữ liệu todo của người dùng khác
+    if todo.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this todo",
+        )
+    # fix: kiểm tra bản ghi todo có phải của người dùng đang đăng nhập hay không
 
     await delete_todo(db, todo)
 
