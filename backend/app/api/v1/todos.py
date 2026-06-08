@@ -141,10 +141,13 @@ async def update_existing_todo(
         )
     # fix: kiểm tra bản ghi todo có phải của người dùng đang đăng nhập hay không
 
-    update_data = todo_data.model_dump()
 
-    if todo_data.completed:
-        todo.completed = todo_data.completed
+    # Hiện tại chỉ đang xử lý TH True, không xử lý False
+    update_data = todo_data.model_dump(exclude_unset=True)
+
+    # if todo_data.completed:
+    #     todo.completed = todo_data.completed
+    # Fix: truyền exclude_unset=True vào model_dump()
 
     # Apply other updates
     if update_data.get("title") is not None:
@@ -152,7 +155,9 @@ async def update_existing_todo(
     if "description" in update_data:
         todo.description = update_data["description"]
 
-    updated_todo = await update_todo(db, todo, {})
+    # Hàm update truyền mảng rỗng -> thay đổi không được cập nhật
+    updated_todo = await update_todo(db, todo, update_data)
+    # Fix: truyền update_data
 
     return updated_todo
 
